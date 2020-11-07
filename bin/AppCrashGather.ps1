@@ -24,6 +24,8 @@ foreach ($UserProfile in $UserProfiles)
     if (Test-Path -Path $PendingPath) 
     {
 
+        $Application = "Firefox"
+
         # get the userid from the localpath
         $user = [regex]::Matches($UserProfile.LocalPath,"([^\\]+$)").groups[1].value
         $user = $User -replace "\..*",""
@@ -38,14 +40,14 @@ foreach ($UserProfile in $UserProfiles)
             # get file content into object               
             $content = $extraFile | Get-Content
 
-            if ($content[0] -match "^AdapterDeviceID=")
+            if ($content -match "^AdapterDeviceID=")
             {
 
                 $CrashTime = (($content -match "^CrashTime=") -split "^CrashTime=")[1]
-
-                # Crash time is the time we should use for the timestamp we associated event to in splunk
                 $CrashTimeSplunk = (Get-Date 01.01.1970).ToLocalTime()+([System.TimeSpan]::fromseconds($CrashTime))
                 $CrashTimeSplunk = format-splunktime -inputDate $CrashTimeSplunk
+
+
                 $StartupTime = (($content -match "^StartupTime=") -split "^StartupTime=")[1]
                 $UptimeTS = (($content -match "^UptimeTS=") -split "^UptimeTS=")[1]
                 $url = (($content -match "^URL=") -split "^URL=")[1]
@@ -55,6 +57,7 @@ foreach ($UserProfile in $UserProfiles)
                 $StackTraces = (($content -match "^StackTraces=") -split "^StackTraces=")[1] | ConvertFrom-Json
 
                 $Event = "$($CrashTimeSplunk) -"
+                $Event += " Application=`"$($Application)`""
                 $Event += " Report=`"$($extraFile.Name)`""
                 $Event += " User=`"$($user)`""
                 $Event += " CrashTime=`"$($CrashTime)`""
