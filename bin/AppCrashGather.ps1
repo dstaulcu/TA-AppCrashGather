@@ -59,18 +59,10 @@ foreach ($UserProfile in $UserProfiles)
                 $SecondsSinceLastCrash = (($content -match "^SecondsSinceLastCrash=") -split "^SecondsSinceLastCrash=")[1]
                 $StackTraces = (($content -match "^StackTraces=") -split "^StackTraces=")[1] | ConvertFrom-Json
 
-                <#
-
                 $ThreadIdNameMapping = (($content -match "^ThreadIdNameMapping=") -split "^ThreadIdNameMapping=") -split ","
                 $TelemetryEnvironment = (($content -match "^TelemetryEnvironment=") -split "^TelemetryEnvironment=")  | ConvertFrom-Json
-
-                $TelemetryEnvironment.build.buildid
-                $TelemetryEnvironment.build.architecture
-                $TelemetryEnvironment.build.displayVersion
-                $TelemetryEnvironment.settings.isDefaultBrowser
-                #>
-
-                # Find module nearest to address of crash
+                
+                  # Find module nearest to address of crash
                 $NearestModule = "Unknown"
                 foreach ($module in $StackTraces.modules | Sort-Object $module.base_addr) {
                     if ($StackTraces.crash_info.address -ge $module.base_addr) {
@@ -81,14 +73,15 @@ foreach ($UserProfile in $UserProfiles)
                 
                 $Event = "$($CrashTimeSplunk) -"
                 $Event += " Application=`"$($Application)`""
+                $Event += " version=`"$($TelemetryEnvironment.build.displayVersion)`""
                 $Event += " Report=`"$($extraFile.Name)`""
                 $Event += " User=`"$($user)`""
+                $Event += " DefaultBroswer=`"$($TelemetryEnvironment.settings.isDefaultBrowser)`""
                 $Event += " CrashTime=`"$($CrashTime)`""
                 $Event += " StartupTime=`"$($StartupTime)`""
                 $Event += " StartupCrash=`"$($StartupCrash)`""
                 $Event += " UptimeTS=`"$($UptimeTS)`""
                 $Event += " url=`"$($url)`""
-                $Event += " version=`"$($version)`""
                 $Event += " SecondsSinceLastCrash=`"$($SecondsSinceLastCrash)`""
                 $Event += " crash_info_address=`"$($StackTraces.crash_info.address)`""
                 $Event += " crash_info_thread=`"$($StackTraces.crash_info.crashing_thread)`""
