@@ -1,4 +1,4 @@
-﻿
+
 $CrashReportAgeThreshold = 7
 
 # function to transform datetime objet to a string splunk can easily consume
@@ -29,6 +29,7 @@ foreach ($UserProfile in $UserProfiles)
         # get the userid from the localpath
         $user = [regex]::Matches($UserProfile.LocalPath,"([^\\]+$)").groups[1].value
         $user = $User -replace "\..*",""
+        $user = $user.ToUpper()
 
         $extraFiles = Get-ChildItem -path $PendingPath -Filter "*.extra"
         foreach ($extraFile in $extraFiles) 
@@ -50,18 +51,41 @@ foreach ($UserProfile in $UserProfiles)
 
                 $StartupTime = (($content -match "^StartupTime=") -split "^StartupTime=")[1]
                 $UptimeTS = (($content -match "^UptimeTS=") -split "^UptimeTS=")[1]
+                if ($UptimeTS -le 60) { $StartupCrash = "TRUE" } else { $StartupCrash = "FALSE" }
+
                 $url = (($content -match "^URL=") -split "^URL=")[1]
                 $version = (($content -match "^Version=") -split "^Version=")[1]
                 $Addons = (($content -match "^Add-ons=") -split "^Add-ons=")[1]
                 $SecondsSinceLastCrash = (($content -match "^SecondsSinceLastCrash=") -split "^SecondsSinceLastCrash=")[1]
                 $StackTraces = (($content -match "^StackTraces=") -split "^StackTraces=")[1] | ConvertFrom-Json
 
+                <#
+
+                $ThreadIdNameMapping = (($content -match "^ThreadIdNameMapping=") -split "^ThreadIdNameMapping=") -split ","
+                $TelemetryEnvironment = (($content -match "^TelemetryEnvironment=") -split "^TelemetryEnvironment=")  | ConvertFrom-Json
+
+                $TelemetryEnvironment.build.buildid
+                $TelemetryEnvironment.build.architecture
+                $TelemetryEnvironment.build.displayVersion
+                $TelemetryEnvironment.settings.isDefaultBrowser
+                #>
+
+                # Find module nearest to address of crash
+                $NearestModule = "Unknown"
+                foreach ($module in $StackTraces.modules | Sort-Object $module.base_addr) {
+                    if ($StackTraces.crash_info.address -ge $module.base_addr) {
+                        $NearestModule = $module.filename
+                        break
+                    }
+                }
+                
                 $Event = "$($CrashTimeSplunk) -"
                 $Event += " Application=`"$($Application)`""
                 $Event += " Report=`"$($extraFile.Name)`""
                 $Event += " User=`"$($user)`""
                 $Event += " CrashTime=`"$($CrashTime)`""
                 $Event += " StartupTime=`"$($StartupTime)`""
+                $Event += " StartupCrash=`"$($StartupCrash)`""
                 $Event += " UptimeTS=`"$($UptimeTS)`""
                 $Event += " url=`"$($url)`""
                 $Event += " version=`"$($version)`""
@@ -69,6 +93,7 @@ foreach ($UserProfile in $UserProfiles)
                 $Event += " crash_info_address=`"$($StackTraces.crash_info.address)`""
                 $Event += " crash_info_thread=`"$($StackTraces.crash_info.crashing_thread)`""
                 $Event += " crash_info_type=`"$($StackTraces.crash_info.type)`""
+                $Event += " crash_address_module='`"$($NearestModule)`""
                 $Event += " Addons=`"$($Addons)`""
 
                 Write-Output $Event
