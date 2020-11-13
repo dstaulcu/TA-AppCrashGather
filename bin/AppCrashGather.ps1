@@ -62,7 +62,7 @@ foreach ($UserProfile in $UserProfiles)
                 $ThreadIdNameMapping = (($content -match "^ThreadIdNameMapping=") -split "^ThreadIdNameMapping=") -split ","
                 $TelemetryEnvironment = (($content -match "^TelemetryEnvironment=") -split "^TelemetryEnvironment=")  | ConvertFrom-Json
                 
-                  # Find module nearest to address of crash
+                # Find module filename whose start address just nearest to nearest to address of crash
                 $NearestModule = "Unknown"
                 foreach ($module in $StackTraces.modules | Sort-Object $module.base_addr) {
                     if ($StackTraces.crash_info.address -ge $module.base_addr) {
@@ -76,7 +76,7 @@ foreach ($UserProfile in $UserProfiles)
                 $Event += " version=`"$($TelemetryEnvironment.build.displayVersion)`""
                 $Event += " Report=`"$($extraFile.Name)`""
                 $Event += " User=`"$($user)`""
-                $Event += " DefaultBroswer=`"$($TelemetryEnvironment.settings.isDefaultBrowser)`""
+                $Event += " DefaultBrowser=`"$($TelemetryEnvironment.settings.isDefaultBrowser)`""
                 $Event += " CrashTime=`"$($CrashTime)`""
                 $Event += " StartupTime=`"$($StartupTime)`""
                 $Event += " StartupCrash=`"$($StartupCrash)`""
@@ -96,22 +96,6 @@ foreach ($UserProfile in $UserProfiles)
             {
                 write-debug "this file is from version having unknown structure"
             }
-
-            <#
-            # todo - remove files older than NN days
-            if ((New-TimeSpan -Start $extraFile.CreationTime).TotalDays -ge $CrashReportAgeThreshold) 
-            {               
-                write-debug "would remove file based on age constraint."
-                $extraFile | Remove-Item -Force -WhatIf
-                $extraFileDmp = $extraFile.FullName -replace "\.extra$",".dmp"
-                if (Test-Path -Path $extraFileDmp) 
-                { 
-                    remove-item -Path $extraFileDmp -Force -WhatIf 
-                }
-
-            }
-            #>
-
         }
     }   
 }
