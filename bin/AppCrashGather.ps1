@@ -34,7 +34,6 @@ foreach ($UserProfile in $UserProfiles)
         $extraFiles = Get-ChildItem -path $PendingPath -Filter "*.extra"
         foreach ($extraFile in $extraFiles) 
         {
-
             # todo - add logic to process files since last bookmark for profile path; or do alex's idea and just delete after processing.
 
             write-debug "processing file $($extraFile.name)..."
@@ -47,7 +46,6 @@ foreach ($UserProfile in $UserProfiles)
                 $CrashTime = (($content -match "^CrashTime=") -split "^CrashTime=")[1]
                 $CrashTimeSplunk = (Get-Date 01.01.1970).ToLocalTime()+([System.TimeSpan]::fromseconds($CrashTime))
                 $CrashTimeSplunk = format-splunktime -inputDate $CrashTimeSplunk
-
 
                 $StartupTime = (($content -match "^StartupTime=") -split "^StartupTime=")[1]
                 $UptimeTS = (($content -match "^UptimeTS=") -split "^UptimeTS=")[1]
@@ -62,7 +60,7 @@ foreach ($UserProfile in $UserProfiles)
                 $ThreadIdNameMapping = (($content -match "^ThreadIdNameMapping=") -split "^ThreadIdNameMapping=") -split ","
                 $TelemetryEnvironment = (($content -match "^TelemetryEnvironment=") -split "^TelemetryEnvironment=")  | ConvertFrom-Json
                 
-                # Find module filename whose start address just nearest to nearest to address of crash
+                # Find module filename whose start address is equal to or just above address of crash
                 $NearestModule = "Unknown"
                 foreach ($module in $StackTraces.modules | Sort-Object $module.base_addr) {
                     if ($StackTraces.crash_info.address -ge $module.base_addr) {
