@@ -1,4 +1,4 @@
-﻿
+
 $CrashReportAgeThreshold = 7
 
 <#
@@ -34,11 +34,14 @@ function format-splunktime {
     return $outputDateString
 }
 
-
+# get a list of the valid and non built-in user profiles on this host
 $UserProfiles = Get-WmiObject -Class Win32_UserProfile | ?{$_.SID.length -gt 8} | Select SID, LocalPath, LastUseTime, Loaded
+
+# enumerate each profile path
 foreach ($UserProfile in $UserProfiles) 
 {
 
+    # if path to pending crash reports exists, process folder
     $PendingPath = "$($Userprofile.Localpath)\AppData\Roaming\Mozilla\Firefox\Crash Reports\Pending"
     if (Test-Path -Path $PendingPath) 
     {
@@ -50,12 +53,14 @@ foreach ($UserProfile in $UserProfiles)
         $user = $User -replace "\..*",""
         $user = $user.ToUpper()
 
+
+        # find files that are newer than our last run date retrieved from bookmark file
         $extraFiles = Get-ChildItem -path $PendingPath -Filter "*.extra" | Where-Object {$_.CreationTime -gt $BookmarkDate }
         foreach ($extraFile in $extraFiles) 
         {
-            # todo - add logic to process files since last bookmark for profile path; or do alex's idea and just delete after processing.
 
             write-debug "processing file $($extraFile.name) with create date $($extrafile.CreationTime)..."
+
             # get file content into object               
             $content = $extraFile | Get-Content
 
@@ -160,7 +165,7 @@ foreach ($UserProfile in $UserProfiles)
             }
 
 
-            # if we have extracted data, write out the event
+            # if we have processed files, prepare inputs for outputs to splunk
             if ($eventParsed -eq $true) {
 
                 Write-Debug "assembling report hash"
@@ -190,7 +195,7 @@ foreach ($UserProfile in $UserProfiles)
             }
         }
 
-        # if file is older than threshold, remove
+        # remove report file and it's memory dump counterpart if the files are older than threshold
         if ((New-TimeSpan -Start $extraFile.CreationTime).TotalDays -ge $CrashReportAgeThreshold) 
         {
             $dmpFullName = $extraFile.FullName -replace ".extra$",".dmp"
@@ -204,5 +209,5 @@ foreach ($UserProfile in $UserProfiles)
     }   
 }
 
-# write-out a bookmark file indicating that we have been here before
+# update bookmark file with last processing time
 Set-Content -Path $BookmarkFile -Value (Get-Date)
