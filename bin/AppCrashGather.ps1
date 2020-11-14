@@ -1,6 +1,11 @@
-
+﻿
 $CrashReportAgeThreshold = 7
+
+<#
 $DebugPreference = "Continue"
+$DebugPreference = "SilentlyContinue"
+#>
+
 
 
 # if bookmark folder does not exist, create it
@@ -76,7 +81,7 @@ foreach ($UserProfile in $UserProfiles)
                 $content = $content | ConvertFrom-Json
 
                 # extract event if the mainstream schema was found
-                if ($content.AdapterDeviceID -and $content.StackTraces -and $content.TelemetryEnvironment) 
+                if ($content.StackTraces -and $content.TelemetryEnvironment) 
                 {
 
                     Write-Debug "signposts of mainstream schema detected"
@@ -118,7 +123,7 @@ foreach ($UserProfile in $UserProfiles)
                 # process potential variations of non-json format
 
                 # extract event if the legacy schema was found
-                if ($content -match "^AdapterDeviceID=" -and $content -match "^StackTraces=" -and $content -match "^TelemetryEnvironment=")
+                if ($content -match "^StackTraces=" -and $content -match "^TelemetryEnvironment=")
                 {
 
                     Write-Debug "signposts of legacy schema detected"
@@ -177,6 +182,8 @@ foreach ($UserProfile in $UserProfiles)
                 $Event += " crash_info_type=`"$($StackTraces.crash_info.type)`""
                 $Event += " crash_address_module=`"$($NearestModule)`""
                 $Event += " Addons=`"$($Addons)`""
+
+                Write-Debug "writing report output to splunk"
 
                 Write-Output $Event
 

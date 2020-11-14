@@ -1,3 +1,2 @@
 @echo off
-set SplunkApp=TA-AppCrashGather
-powershell.exe -file "%SPLUNK_HOME%\etc\apps\%SplunkApp%\bin\AppCrashGather.ps1'"
+powershell.exe -NoLogo -file "C:\Program Files\Splunk\etc\apps\TA-AppCrashGather\bin\AppCrashGather.ps1"
