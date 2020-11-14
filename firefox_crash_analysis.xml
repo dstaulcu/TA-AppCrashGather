@@ -1,0 +1,129 @@
+<form>
+  <label>Firefox Crash Analysis</label>
+  <search id="baseSearch1">
+    <query>
+source=AppCrashGather host=$host$
+| search User=$user$ version=$version$ crash_address_module=$module$
+| eval StartupTime=strftime(StartupTime,"%c"), CrashTime=strftime(CrashTime,"%c")
+| eval Addons = split(Addons,",")
+| table _time host Application version Report User DefaultBrowser CrashTime StartupTime StartupCrash UptimeTS url crash_info_address crash_info_thread crash_info_type crash_address_module Addons 
+    </query>
+    <earliest>$field1.earliest$</earliest>
+    <latest>$field1.latest$</latest>
+    <sampleRatio>$t_ratio$</sampleRatio>
+  </search>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="time" token="field1">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="host">
+      <label>host</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="user">
+      <label>user filter</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="version">
+      <label>version filter</label>
+      <default>*</default>
+    </input>
+    <input type="text" token="module">
+      <label>module</label>
+      <default>*</default>
+    </input>
+    <input type="dropdown" token="t_ratio" searchWhenChanged="false">
+      <label>Event Sampling Ratio:</label>
+      <default>0</default>
+      <choice value="0">0 - All Events (Computationally HEAVY)</choice>
+      <choice value="10">1:10</choice>
+      <choice value="25">1:25</choice>
+      <choice value="50">1:50</choice>
+      <choice value="75">1:75</choice>
+      <choice value="100">1:100</choice>
+      <choice value="150">1:150</choice>
+      <choice value="200">1:200</choice>
+      <choice value="300">1:300</choice>
+      <choice value="500">1:500</choice>
+      <choice value="750">1:750</choice>
+      <choice value="1000">1:1000</choice>
+      <choice value="5000">1:5000</choice>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <chart>
+        <title>Trend by Version</title>
+        <search base="baseSearch1">
+          <query>| timechart count by version</query>
+        </search>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.text">Count of Crashes</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">bottom</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Top Crash by Version</title>
+        <search base="baseSearch1">
+          <query>| stats count as EventCount, dc(User) as UserCount by version
+| sort 5 - EventCount</query>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top Crash by Signature</title>
+        <search base="baseSearch1">
+          <query>| stats count as EventCount, dc(Host) as HostCount by version, crash_info_type, crash_address_module
+| sort 5 - EventCount</query>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Top Crash by Host</title>
+        <search base="baseSearch1">
+          <query>| stats count as EventCount, dc(User) as UserCount by host
+| sort 5 - EventCount</query>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Top Crash by User</title>
+        <search base="baseSearch1">
+          <query>| stats count as EventCount, dc(Host) as HostCount by User
+| sort 5 - EventCount</query>
+        </search>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Crash Details</title>
+        <search base="baseSearch1">
+          <query>| table _time host version User DefaultBrowser StartupTime StartupCrash UptimeTS url crash_info_address crash_info_thread crash_info_type crash_address_module Addons            
+| sort 0 - _time</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>
